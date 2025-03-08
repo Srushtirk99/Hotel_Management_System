@@ -1,0 +1,219 @@
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <algorithm>
+#include <map>
+#include <iomanip>
+#include <stdexcept>
+#include <regex> // Added for phone number validation
+
+using namespace std;
+
+// Enum for Room Type
+enum RoomType { SINGLE, DOUBLE, SUITE };
+
+// Abstract Base Class: Person
+class Person {
+protected:
+    string name;
+    string phoneNumber;
+
+public:
+    Person(string name, string phoneNumber) : name(name), phoneNumber(phoneNumber) {}
+
+    virtual void displayDetails() const = 0;
+    string getName() const { return name; }
+    virtual ~Person() {}
+};
+
+// Customer Class
+class Customer : public Person {
+protected:
+    int roomNumber;
+    RoomType roomType;
+    int stayDuration;
+    int loyaltyPoints;
+    double billAmount;
+
+public:
+    Customer(string name, int roomNumber, string phoneNumber, RoomType roomType, int stayDuration)
+        : Person(name, phoneNumber), roomNumber(roomNumber), roomType(roomType), stayDuration(stayDuration), loyaltyPoints(0), billAmount(0) {}
+
+    int getRoomNumber() const { return roomNumber; }
+    int getLoyaltyPoints() const { return loyaltyPoints; }
+    double getBillAmount() const { return billAmount; }
+
+    void calculateBill() {
+        double basePrice = (roomType == SINGLE) ? 100 : (roomType == DOUBLE) ? 150 : 250;
+        billAmount = basePrice * stayDuration;
+        if (loyaltyPoints > 50) billAmount *= 0.9; // 10% discount for loyal customers
+    }
+
+    void addLoyaltyPoints() { loyaltyPoints += 10 * stayDuration; }
+
+    void makePayment(double amount) {
+        if (amount >= billAmount) {
+            cout << "✅ Payment successful! Change: $" << fixed << setprecision(2) << (amount - billAmount) << "\n";
+        } else {
+            cout << "❌ Insufficient amount. Please pay the full bill: $" << fixed << setprecision(2) << billAmount << "\n";
+        }
+    }
+
+    void displayDetails() const override {
+        string roomTypeStr = (roomType == SINGLE) ? "Single" : (roomType == DOUBLE) ? "Double" : "Suite";
+        cout << "🛏️ Customer: " << name << " | Room: " << roomNumber << " (" << roomTypeStr << ") | Stay: " << stayDuration
+             << " nights | Bill: $" << fixed << setprecision(2) << billAmount << " | Loyalty Points: " << loyaltyPoints << endl;
+    }
+
+    bool operator>(const Customer& c) const {
+        return this->loyaltyPoints > c.loyaltyPoints;
+    }
+};
+
+// Hotel Management Class
+class Hotel {
+private:
+    vector<Customer*> customers;
+    vector<int> bookedRooms;
+    map<int, bool> roomCleanStatus;
+    static int totalBookings;
+
+public:
+    bool isRoomAvailable(int roomNumber) {
+        return find(bookedRooms.begin(), bookedRooms.end(), roomNumber) == bookedRooms.end();
+    }
+
+    void bookRoom() {
+        string name, phone;
+        int roomNumber, stay, roomTypeChoice;
+
+        cout << "\nEnter Customer Name: ";
+        cin.ignore();
+        getline(cin, name);
+
+        // Validate phone number (10 digits)
+        while (true) {
+            cout << "Enter Phone Number (10 digits): ";
+            cin >> phone;
+            if (regex_match(phone, regex("\\d{10}"))) {
+                break; // Valid phone number
+            } else {
+                cout << "❌ Invalid phone number! Please enter exactly 10 digits.\n";
+            }
+        }
+
+        cout << "Enter Room Number: ";
+        cin >> roomNumber;
+        cout << "Enter Stay Duration (nights): ";
+        cin >> stay;
+
+        cout << "\nSelect Room Type:\n";
+        cout << "1️⃣ Single - $100/night\n2️⃣ Double - $150/night\n3️⃣ Suite - $250/night\n";
+        cout << "Enter choice: ";
+        cin >> roomTypeChoice;
+
+        if (roomTypeChoice < 1 || roomTypeChoice > 3) {
+            cout << "❌ Invalid room type selected!\n";
+            return;
+        }
+
+        RoomType roomType = (roomTypeChoice == 1) ? SINGLE : (roomTypeChoice == 2) ? DOUBLE : SUITE;
+
+        if (!isRoomAvailable(roomNumber)) {
+            cout << "❌ Room already booked!\n";
+            return;
+        }
+
+        Customer* cust = new Customer(name, roomNumber, phone, roomType, stay);
+        cust->calculateBill();
+        cust->addLoyaltyPoints();
+
+        customers.push_back(cust);
+        bookedRooms.push_back(roomNumber);
+        roomCleanStatus[roomNumber] = false;
+
+        totalBookings++;
+
+        cout << "✅ Room booked successfully for " << name << "!\n";
+    }
+
+    void displayCustomers() {
+        if (customers.empty()) {
+            cout << "❌ No customers found!\n";
+            return;
+        }
+
+        cout << "\n📜 ===== Booked Rooms =====\n";
+        for (const auto& cust : customers) {
+            cust->displayDetails();
+        }
+    }
+
+    void checkOut() {
+        int roomNumber;
+        double amountPaid;
+
+        cout << "Enter Room Number to Check Out: ";
+        cin >> roomNumber;
+
+        for (size_t i = 0; i < customers.size(); i++) {
+            if (customers[i]->getRoomNumber() == roomNumber) {
+                customers[i]->displayDetails();
+
+                cout << "💳 Enter payment amount: $";
+                cin >> amountPaid;
+
+                customers[i]->makePayment(amountPaid);
+
+                delete customers[i];
+                customers.erase(customers.begin() + i);
+                bookedRooms.erase(remove(bookedRooms.begin(), bookedRooms.end(), roomNumber), bookedRooms.end());
+                roomCleanStatus[roomNumber] = true;
+                totalBookings--;
+                cout << "✅ Check-out successful. Room needs cleaning.\n";
+                return;
+            }
+        }
+
+        cout << "❌ Room not found or already vacant!\n";
+    }
+
+    void displayRoomStatus() {
+        cout << "\n🛏️ Room Status:\n";
+        for (const auto& room : roomCleanStatus) {
+            cout << "Room " << room.first << ": " << (room.second ? "🧹 Needs Cleaning" : "✅ Occupied") << "\n";
+        }
+    }
+
+    ~Hotel() {
+        for (auto cust : customers) {
+            delete cust;
+        }
+    }
+};
+
+// Initialize static member
+int Hotel::totalBookings = 0;
+
+// Main Function
+int main() {
+    Hotel hotel;
+    int choice;
+
+    while (true) {
+        cout << "\n🏨 Hotel Management System\n";
+        cout << "1️⃣ Book Room\n2️⃣ Display Customers\n3️⃣ Check Out\n4️⃣ Room Status\n5️⃣ Exit\nEnter Choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: hotel.bookRoom(); break;
+            case 2: hotel.displayCustomers(); break;
+            case 3: hotel.checkOut(); break;
+            case 4: hotel.displayRoomStatus(); break;
+            case 5: cout << "🚪 Exiting system. Goodbye!\n"; return 0;
+            default: cout << "❌ Invalid choice!\n";
+        }
+    }
+
+    return 0;
+}
