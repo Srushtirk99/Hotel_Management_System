@@ -53,7 +53,7 @@ public:
 
     void makePayment(double amount) {
         if (amount >= billAmount) {
-            cout << "✅ Payment successful! Change: $" << fixed << setprecision(2) << (amount - billAmount) << "\n";
+            cout << "✅ Payment successful!" << fixed << setprecision(2) << (amount - billAmount) << "\n";
         } else {
             cout << "❌ Insufficient amount. Please pay the full bill: $" << fixed << setprecision(2) << billAmount << "\n";
         }
@@ -170,7 +170,7 @@ public:
                 bookedRooms.erase(remove(bookedRooms.begin(), bookedRooms.end(), roomNumber), bookedRooms.end());
                 roomCleanStatus[roomNumber] = true;
                 totalBookings--;
-                cout << "✅ Check-out successful. Room needs cleaning.\n";
+                cout << "✅ Check-out successful.\n Room needs cleaning.\n";
                 return;
             }
         }
