@@ -39,7 +39,7 @@ This Hotel Management System is a C++ program that uses Object-Oriented Programm
 ### ✅ Successful Room Booking
 #### **Input:**
 ```
-Enter Customer Name: John Doe
+Enter Customer Name: Srushti
 Enter Phone Number (10 digits): 9876543210
 Enter Room Number: 101
 Enter Stay Duration (nights): 3
@@ -51,7 +51,7 @@ Enter choice: 2
 ```
 #### **Output:**
 ```
-✅ Room booked successfully for John Doe!
+✅ Room booked successfully for Srushti!
 ```
 
 ---
@@ -59,7 +59,7 @@ Enter choice: 2
 ### ❌ Room Booking with Invalid Phone Number
 #### **Input:**
 ```
-Enter Customer Name: Jane Smith
+Enter Customer Name: teju
 Enter Phone Number (10 digits): 12345
 ```
 #### **Output:**
@@ -89,8 +89,9 @@ Enter Room Number to Check Out: 101
 ```
 #### **Output:**
 ```
-✅ Payment successful! Change: $0.00
-✅ Check-out successful. Room needs cleaning.
+✅ Payment successful!
+✅ Check-out successful.
+Room needs cleaning.
 ```
 
 ---
@@ -112,7 +113,6 @@ Enter Room Number to Check Out: 101
 #### **Output:**
 ```
 🛏️ Room Status:
-Room 101: 🧹 Needs Cleaning
 Room 102: ✅ Occupied
 ```
 
