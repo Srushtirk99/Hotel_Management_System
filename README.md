@@ -128,15 +128,15 @@ Room 102: ✅ Occupied
 ## How to Run
 1. Clone the repository:
 ```
-git clone https://github.com/yourusername/hotel-management-system.git
+git clone https://github.com/Srushtirk99/Hotel_Management_System.git
 ```
 2. Compile the code using g++:
 ```
-g++ hotel_management.cpp -o hotel_management
+g++ Hotel_Management_System.cpp -o Hotel_Management_System
 ```
 3. Run the executable:
 ```
-./hotel_management
+./Hotel_Management_System
 ```
 
 Enjoy managing your hotel with this system! 🚀
