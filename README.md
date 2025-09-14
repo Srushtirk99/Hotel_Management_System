@@ -45,5 +45,5 @@ This project allows managing **customers, rooms, and staff** in a realistic hote
 
 1. **Clone the repository**  
 ```bash
-git clone https://github.com/<your-username>/OOP-Hotel-Management-System.git
+git clone https://github.com/Srushtirk99/Hotel_Management_System.git
 cd OOP-Hotel-Management-System
