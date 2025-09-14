@@ -1,210 +1,335 @@
 #include <iostream>
 #include <vector>
+#include <map>
+#include <memory>
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
 #include <stdexcept>
-#include <memory>   // for smart pointers
 using namespace std;
 
-// ================== Abstract Base Class (Abstraction) ==================
+// ================= Abstract Base Classes =================
 class Person {
 protected:
     string name;
 public:
     Person(string n) : name(n) {}
-    virtual void displayDetails() const = 0;  // Pure virtual (Abstraction)
+    virtual void displayDetails() const = 0; // Abstraction
+    string getName() const { return name; }
     virtual ~Person() {}
 };
 
-// ================== Customer Class (Encapsulation + Inheritance) ==================
-class Customer : public Person {
-private:
-    int stayDuration;
-    double bill;
-    int roomNumber;
-
-public:
-    Customer(string n, int d, double b, int r)
-        : Person(n), stayDuration(d), bill(b), roomNumber(r) {
-        if (d <= 0) throw invalid_argument("Stay duration must be positive!");
-        if (b < 0) throw invalid_argument("Bill cannot be negative!");
-    }
-
-    void displayDetails() const override {   // Polymorphism
-        cout << "👤 Name: " << name << " | 🛏 Room: " << roomNumber
-             << " | Stay: " << stayDuration << " days | 💰 Bill: " << bill << " INR\n";
-    }
-
-    void checkRewards() const {
-        if (stayDuration > 5)
-            cout << "🎉 Congrats " << name << "! You earned a FREE Dessert 🍮\n";
-    }
-
-    double getBill() const { return bill; }
-    string getName() const { return name; }
-    int getRoomNumber() const { return roomNumber; }
-
-    // Operator Overloading (Comparison by Bill)
-    bool operator>(const Customer& other) const {
-        return bill > other.bill;
-    }
-};
-
-// ================== Room Class (Base) ==================
 class Room {
 protected:
     int roomNumber;
     double pricePerDay;
-
+    map<string,double> amenities;
 public:
-    Room(int number, double price) : roomNumber(number), pricePerDay(price) {}
-    virtual double calculateBill(int days) { return days * pricePerDay; }
+    Room(int num, double price) : roomNumber(num), pricePerDay(price) {}
+    virtual double calculateBill(int days) {
+        double amenityCost = 0;
+        for(auto &a: amenities) amenityCost += a.second;
+        return days*(pricePerDay + amenityCost);
+    }
     virtual void showRoomInfo() {
-        cout << "🏨 Room " << roomNumber << " | Price: " << pricePerDay << " INR/day\n";
+        cout << "Room " << roomNumber << " | Price: " << pricePerDay << "/day\n";
+        for(auto &a: amenities)
+            cout << "  - " << a.first << ": " << a.second << "/day\n";
     }
     int getRoomNumber() const { return roomNumber; }
     virtual ~Room() {}
 };
 
-// ================== Derived Room Types (Inheritance + Polymorphism) ==================
+// ================= Derived Rooms =================
 class StandardRoom : public Room {
 public:
-    StandardRoom(int number) : Room(number, 2000) {}
+    StandardRoom(int num) : Room(num, 2000) {
+        amenities["WiFi"] = 100;
+        amenities["Breakfast"] = 150;
+    }
     void showRoomInfo() override {
-        cout << "🛏 Standard Room " << roomNumber << " | Price: " << pricePerDay << " INR/day\n";
+        cout << "🛏 Standard Room " << roomNumber << " | Price: " << pricePerDay << "/day\n";
+        for(auto &a: amenities)
+            cout << "  - " << a.first << ": " << a.second << "/day\n";
     }
 };
 
 class LuxuryRoom : public Room {
 public:
-    LuxuryRoom(int number) : Room(number, 5000) {}
-    double calculateBill(int days) override { return (days * pricePerDay) + 2000; }
+    LuxuryRoom(int num) : Room(num, 5000) {
+        amenities["WiFi"] = 100;
+        amenities["Breakfast"] = 150;
+        amenities["Spa"] = 2000;
+    }
     void showRoomInfo() override {
-        cout << "✨ Luxury Room " << roomNumber
-             << " | Price: " << pricePerDay << " INR/day (Includes Spa)\n";
+        cout << "✨ Luxury Room " << roomNumber << " | Price: " << pricePerDay << "/day\n";
+        for(auto &a: amenities)
+            cout << "  - " << a.first << ": " << a.second << "/day\n";
     }
 };
 
-// ================== Hotel Class ==================
+class VIPRoom : public Room {
+public:
+    VIPRoom(int num) : Room(num, 8000) {
+        amenities["WiFi"] = 100;
+        amenities["Breakfast"] = 150;
+        amenities["Spa"] = 2000;
+        amenities["Pool"] = 3000;
+    }
+    void showRoomInfo() override {
+        cout << "🌟 VIP Room " << roomNumber << " | Price: " << pricePerDay << "/day\n";
+        for(auto &a: amenities)
+            cout << "  - " << a.first << ": " << a.second << "/day\n";
+    }
+};
+
+// ================= Customer =================
+class Customer : public Person {
+private:
+    int stayDuration;
+    double bill;
+    int roomNumber;
+    int loyaltyPoints;
+public:
+    Customer(string n, int days, double b, int r)
+        : Person(n), stayDuration(days), bill(b), roomNumber(r), loyaltyPoints(days*10) {
+        if(days<=0) throw invalid_argument("Stay duration must be positive!");
+        if(b<0) throw invalid_argument("Bill cannot be negative!");
+    }
+
+    void displayDetails() const override {
+        cout << "👤 Name: " << name
+             << " | Room: " << roomNumber
+             << " | Stay: " << stayDuration << " days"
+             << " | 💰 Bill: " << fixed << setprecision(2) << bill
+             << " | Loyalty Points: " << loyaltyPoints << "\n";
+    }
+
+    void makePayment(double amount) {
+        if(amount >= bill) {
+            cout << "✅ Payment successful! Change: " << fixed << setprecision(2) << (amount-bill) << "\n";
+            bill = 0;
+        } else {
+            cout << "❌ Insufficient payment. Remaining: " << fixed << setprecision(2) << (bill-amount) << "\n";
+            bill -= amount;
+        }
+    }
+
+    double getBill() const { return bill; }
+    int getRoomNumber() const { return roomNumber; }
+    int getLoyaltyPoints() const { return loyaltyPoints; }
+
+    bool operator>(const Customer& other) const { return bill>other.bill; }
+
+    // For file I/O
+    string serialize() const {
+        return name + "," + to_string(stayDuration) + "," + to_string(bill) + "," + to_string(roomNumber) + "," + to_string(loyaltyPoints) + "\n";
+    }
+};
+
+// ================= Staff =================
+class Staff : public Person {
+protected:
+    string role;
+public:
+    Staff(string n, string r) : Person(n), role(r) {}
+    virtual void performDuties() = 0;
+    void displayDetails() const override {
+        cout << "👔 Staff: " << name << " | Role: " << role << "\n";
+    }
+};
+
+class Receptionist : public Staff {
+public:
+    Receptionist(string n) : Staff(n,"Receptionist") {}
+    void performDuties() override {
+        cout << name << " is handling check-ins and bookings.\n";
+    }
+};
+
+class Housekeeping : public Staff {
+public:
+    Housekeeping(string n) : Staff(n,"Housekeeping") {}
+    void performDuties() override {
+        cout << name << " is cleaning and maintaining rooms.\n";
+    }
+};
+
+class Manager : public Staff {
+public:
+    Manager(string n) : Staff(n,"Manager") {}
+    void performDuties() override {
+        cout << name << " is managing hotel operations.\n";
+    }
+};
+
+// ================= Hotel =================
 class Hotel {
 private:
-    vector<shared_ptr<Customer>> customers;   // STL + Smart Pointers
+    vector<shared_ptr<Customer>> customers;
     vector<shared_ptr<Room>> rooms;
+    vector<shared_ptr<Staff>> staff;
+    map<int,bool> roomOccupied;
     static int nextRoomNumber;
     static double totalRevenue;
 
 public:
-    // Encapsulation with static members
     int assignRoom() { return nextRoomNumber++; }
 
-    void addCustomer(string name, int days, bool luxury = false) {
+    void addCustomer(string name, int days, int type) {
         int roomNo = assignRoom();
-
-        shared_ptr<Room> room = luxury ?
-    static_pointer_cast<Room>(make_shared<LuxuryRoom>(roomNo)) :
-    static_pointer_cast<Room>(make_shared<StandardRoom>(roomNo));
-
+        shared_ptr<Room> room;
+        if(type==1) room = make_shared<StandardRoom>(roomNo);
+        else if(type==2) room = make_shared<LuxuryRoom>(roomNo);
+        else room = make_shared<VIPRoom>(roomNo);
 
         double bill = room->calculateBill(days);
-        auto cust = make_shared<Customer>(name, days, bill, roomNo);
+        auto cust = make_shared<Customer>(name,days,bill,roomNo);
 
         rooms.push_back(room);
         customers.push_back(cust);
+        roomOccupied[roomNo] = true;
         totalRevenue += bill;
 
-        cout << "✅ Customer added successfully!\n";
+        cout << "✅ Room booked successfully!\n";
         cust->displayDetails();
-        cust->checkRewards();
-        cout << endl;
+        room->showRoomInfo();
+        saveCustomers(); // Save to file
+    }
+
+    void addStaff(shared_ptr<Staff> s) { staff.push_back(s); }
+
+    void showStaff() {
+        cout << "===== Staff List =====\n";
+        for(auto &s : staff) s->displayDetails();
     }
 
     void showAllCustomers() {
-        if (customers.empty()) {
-            cout << "⚠️ No customers yet.\n";
-            return;
-        }
-        cout << "===== 👥 Customer List =====\n";
-        for (auto& c : customers) c->displayDetails();
+        if(customers.empty()) { cout << "⚠️ No customers yet.\n"; return; }
+        cout << "===== Customer List =====\n";
+        for(auto &c: customers) c->displayDetails();
     }
 
-    void findCustomer(string name) {
-        auto it = find_if(customers.begin(), customers.end(), [&](shared_ptr<Customer> c) {
-            return c->getName() == name;
-        });
-        if (it != customers.end()) {
-            cout << "✅ Customer found!\n";
+    void findCustomerByName(const string& name) {
+        auto it = find_if(customers.begin(),customers.end(),
+                          [&](shared_ptr<Customer> c){ return c->getName()==name; });
+        if(it!=customers.end()) {
+            cout << "✅ Customer found:\n";
             (*it)->displayDetails();
-        } else {
-            cout << "❌ No customer with that name.\n";
-        }
+        } else cout << "❌ Customer not found.\n";
     }
 
-    void showRevenue() {
-        cout << "💰 Total Hotel Revenue: " << totalRevenue << " INR\n";
+    void checkOut(int roomNo, double payment) {
+        auto it = find_if(customers.begin(),customers.end(),
+            [roomNo](shared_ptr<Customer> c){ return c->getRoomNumber()==roomNo; });
+        if(it!=customers.end()) {
+            (*it)->displayDetails();
+            (*it)->makePayment(payment);
+            customers.erase(it);
+            roomOccupied[roomNo] = false;
+            cout << "✅ Room " << roomNo << " is now available.\n";
+            saveCustomers(); // Update file
+        } else cout << "❌ Room not found or already vacant.\n";
     }
+
+    void showRoomStatus() {
+        cout << "===== Room Status =====\n";
+        for(auto &r: rooms)
+            cout << "Room " << r->getRoomNumber() << ": "
+                 << (roomOccupied[r->getRoomNumber()] ? "✅ Occupied" : "🧹 Available") << "\n";
+    }
+
+    void showRevenue() { cout << "💰 Total Revenue: " << totalRevenue << "\n"; }
 
     void showTopSpender() {
-        if (customers.empty()) {
-            cout << "⚠️ No customers to compare.\n";
-            return;
+        if(customers.empty()) { cout << "⚠️ No customers yet.\n"; return; }
+        auto top = *max_element(customers.begin(),customers.end(),
+                                [](auto &a, auto &b){ return *a > *b ? false:true; });
+        cout << "👑 Top Spender:\n";
+        top->displayDetails();
+    }
+
+    // File I/O for persistence
+    void saveCustomers() {
+        ofstream fout("customers.txt");
+        for(auto &c: customers) fout << c->serialize();
+        fout.close();
+    }
+
+    void loadCustomers() {
+        ifstream fin("customers.txt");
+        string line;
+        while(getline(fin,line)) {
+            if(line.empty()) continue;
+            string name; int days, roomNo, loyalty; double bill;
+            sscanf(line.c_str(), "%[^,],%d,%lf,%d,%d", &name[0], &days, &bill, &roomNo, &loyalty);
+            // For simplicity, won't reconstruct room objects here
         }
-        auto richest = *max_element(customers.begin(), customers.end(),
-                                    [](auto& a, auto& b) { return *a > *b ? false : true; });
-        cout << "👑 Top Spender: ";
-        richest->displayDetails();
+        fin.close();
     }
 };
 
-// Initialize static members
-int Hotel::nextRoomNumber = 101;
-double Hotel::totalRevenue = 0;
+// Static members
+int Hotel::nextRoomNumber=101;
+double Hotel::totalRevenue=0;
 
-// ================== Main Function ==================
+// ================= Main =================
 int main() {
-    Hotel h;
+    Hotel hotel;
     int choice;
 
-    cout << "\n🏨 Welcome to Srushti's OOP Hotel Management System 🏨\n";
+    // Add default staff
+    hotel.addStaff(make_shared<Receptionist>("Alice"));
+    hotel.addStaff(make_shared<Housekeeping>("Bob"));
+    hotel.addStaff(make_shared<Manager>("Charlie"));
+
+    cout << "\n🏨 Welcome to Advanced OOP Hotel Management System 🏨\n";
 
     do {
         cout << "\n===== MENU =====\n";
         cout << "1. Add Customer (Standard Room)\n";
         cout << "2. Add Customer (Luxury Room)\n";
-        cout << "3. Show All Customers\n";
-        cout << "4. Find Customer by Name\n";
-        cout << "5. Show Total Revenue\n";
-        cout << "6. Show Top Spender\n";
-        cout << "7. Exit\n";
-        cout << "👉 Enter choice: ";
+        cout << "3. Add Customer (VIP Room)\n";
+        cout << "4. Show All Customers\n";
+        cout << "5. Find Customer by Name\n";
+        cout << "6. Check Out Customer\n";
+        cout << "7. Show Room Status\n";
+        cout << "8. Show Total Revenue\n";
+        cout << "9. Show Top Spender\n";
+        cout << "10. Show Staff\n";
+        cout << "11. Exit\n";
+        cout << "Enter Choice: ";
         cin >> choice;
 
         try {
-            if (choice == 1 || choice == 2) {
+            if(choice==1||choice==2||choice==3){
                 string name;
                 int days;
-                cout << "👤 Enter Customer Name: ";
-                cin >> name;
-                cout << "📅 Enter Stay Duration (days): ";
-                cin >> days;
-                h.addCustomer(name, days, (choice == 2));
-            } else if (choice == 3) {
-                h.showAllCustomers();
-            } else if (choice == 4) {
-                string name;
-                cout << "🔍 Enter Customer Name: ";
-                cin >> name;
-                h.findCustomer(name);
-            } else if (choice == 5) {
-                h.showRevenue();
-            } else if (choice == 6) {
-                h.showTopSpender();
-            } else if (choice != 7) {
-                cout << "⚠️ Invalid choice!\n";
+                cout << "Enter Customer Name: "; cin >> name;
+                cout << "Enter Stay Duration (days): "; cin >> days;
+                hotel.addCustomer(name,days,choice);
             }
-        } catch (exception& e) {
+            else if(choice==4) hotel.showAllCustomers();
+            else if(choice==5){
+                string name;
+                cout << "Enter Customer Name: "; cin >> name;
+                hotel.findCustomerByName(name);
+            }
+            else if(choice==6){
+                int roomNo; double pay;
+                cout << "Enter Room Number to Check-Out: "; cin >> roomNo;
+                cout << "Enter Payment Amount: "; cin >> pay;
+                hotel.checkOut(roomNo,pay);
+            }
+            else if(choice==7) hotel.showRoomStatus();
+            else if(choice==8) hotel.showRevenue();
+            else if(choice==9) hotel.showTopSpender();
+            else if(choice==10) hotel.showStaff();
+            else if(choice!=11) cout << "⚠️ Invalid choice!\n";
+        } catch(exception &e) {
             cout << "⚠️ Error: " << e.what() << "\n";
         }
-
-    } while (choice != 7);
+    } while(choice!=11);
 
     cout << "👋 Thank you for using the Hotel Management System. Goodbye!\n";
     return 0;
